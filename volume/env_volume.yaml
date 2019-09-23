@@ -1,0 +1,8 @@
+parameter_defaults:
+  key_name: undercloud
+  flavor: disk-medium
+  image: hadoop-edit
+  private_net: private
+  slave_count: 1
+  security_group: default
+  volume_size: 40

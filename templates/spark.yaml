@@ -1,0 +1,32 @@
+heat_template_version: rocky
+
+parameters:
+  server:
+    type: string
+
+resources:
+  SparkSoftwareConfig:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: script
+      config: {get_file: scripts/config_spark.sh}
+  SparkSoftwareDeployment:
+    type: OS::Heat::SoftwareDeployment
+    config:
+      get_resource: SparkSoftwareConfig
+    server:
+      get_param: server
+
+outputs:
+  result:
+    description: Spark config result
+    value:
+      get_attr: [SparkSoftwareDeployment, result]
+  stdout:
+    description: Spark config stdout
+    value:
+      get_attr: [SparkSoftwareDeployment, stdout]
+  stderr:
+    description: Spark config stderr
+    value:
+      get_attr: [SparkSoftwareDeployment, stderr]

@@ -15,7 +15,7 @@ parameters:
   volume_size:
     type: number
     label: volume size
-    description: size of volume(gb)
+    description: size of volume (gb)
 
 conditions:
   has_public_network:
@@ -34,20 +34,14 @@ resources:
           protocol: tcp
           port_range_min: 22
           port_range_max: 22
+
         - remote_ip_prefix: 0.0.0.0/0
           protocol: icmp
-        - remote_ip_prefix: 0.0.0.0/0
-          protocol: tcp
-          port_range_min: 50070
-          port_range_max: 50070
+
         - remote_ip_prefix: 0.0.0.0/0
           protocol: tcp
           port_range_min: 9000
           port_range_max: 9000
-        - remote_ip_prefix: 0.0.0.0/0
-          protocol: tcp
-          port_range_min: 50075
-          port_range_max: 50075
 
   server:
     type: OS::Nova::Server
@@ -69,8 +63,8 @@ resources:
     type: OS::Neutron::Port
     properties:
       network_id: { get_param: private_net }
-      security_groups: 
-      - { get_resource: security_group } 
+      security_groups:
+      - { get_resource: security_group }
 
   server_floating_ip:
     type: OS::Neutron::FloatingIP
@@ -84,7 +78,6 @@ resources:
    properties:
     size: {get_param: volume_size}
     image: {get_param: image}
-
 outputs:
   slave_ip:
     value:

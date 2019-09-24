@@ -1,0 +1,22 @@
+---
+- hosts: localhost
+  gather_facts: no
+  connection: local
+  tasks:
+    - name: Generate ssh key
+      openssh_keypair:
+        size: 4096
+        path: "/root/.ssh"
+      register: keypair
+
+    - name: Heat outputs id_rsa_pub
+      lineinefile:
+        path: "{{ heat_outputs_path }}.id_rsa_pub"
+        line: "{{ keypair.public_key }}"
+
+    - name: Add key for ssh nopass
+      authorized_key:
+        user: root
+        state: present
+        key: "{{ keypair.public_key }}"
+

@@ -1,0 +1,27 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - unarchive:
+        src: /opt/apache-hive-3.1.2-bin.tar.gz
+        dest: /opt
+    - file:
+        state: link
+        src: /opt/apache-hive-3.1.2
+        path: /opt/hive
+    - copy:
+        dest: /opt/hive/conf/hive-site.xml
+        content: "{{ hive_site_xml }}"
+
+    - blockinfile:
+        marker: "# {mark} add by ansible (hive)"
+        block: |
+		  export HIVE_HOME=/opt/hive
+		  export HIVE_CONF_DIR=/opt/hive/conf
+    - copy:
+        dest: /root/.my.cnf
+        content: {{ hive_mycnf }}
+    - shell: |
+        source /root/.bashrc
+		schematool -initSchema -dbType mysql

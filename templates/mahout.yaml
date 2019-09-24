@@ -8,8 +8,8 @@ resources:
   MahoutSoftwareConfig:
     type: OS::Heat::SoftwareConfig
     properties:
-      group: script
-      config: {get_file: scripts/config_mahout.sh}
+      group: ansible
+      config: {get_file: ansible/mahout.yaml}
   MahoutSoftwareDeployment:
     type: OS::Heat::SoftwareDeployment
     config:
@@ -18,15 +18,11 @@ resources:
       get_param: server
 
 outputs:
-  result:
-    description: Mahout config result
-    value:
-      get_attr: [MahoutSoftwareDeployment, result]
   stdout:
     description: Mahout config stdout
     value:
-      get_attr: [MahoutSoftwareDeployment, stdout]
+      get_attr: [MahoutSoftwareDeployment, deploy_stdout]
   stderr:
     description: Mahout config stderr
     value:
-      get_attr: [MahoutSoftwareDeployment, stderr]
+      get_attr: [MahoutSoftwareDeployment, deploy_stderr]

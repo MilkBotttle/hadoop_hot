@@ -1,0 +1,7 @@
+{% for ip in master_ip %}
+{{ ip }} node-master{{ loop.index }}
+{% endfor %}
+
+{% for ip in slave_ip %}
+{{ ip }} node{{ loop.index }} 
+{% endfor %}

@@ -1,0 +1,18 @@
+[all]
+{% for ip in masters %}
+node-master{{ loop.index }} ansible_host={{ ip }} ansible_ssh_user={{ user }}
+{% endfor %}
+
+{% for ip in slaves %}
+node{{ loop.index }} ansible_host={{ ip }} ansible_ssh_user={{ user }}
+{% endfor %}
+
+[master]
+{% for ip in masters %}
+node-master{{ loop.index }} ansible_host={{ ip }} ansible_ssh_user={{ user }}
+{% endfor %}
+
+[slave]
+{% for ip in slaves %}
+node{{ loop.index }} ansible_host={{ ip }} ansible_ssh_user={{ user }}
+{% endfor %}

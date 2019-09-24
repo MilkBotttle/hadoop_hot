@@ -3,38 +3,41 @@ heat_template_version: rocky
 parameters:
   server:
     type: string
+  HiveMysqlUser:
+    type: string
+    default: 'root'
+  HiveMysqlPassword:
+    type: string
+    default: 'root'
 
 resources:
   HiveSoftwareConfig:
     type: OS::Heat::SoftwareConfig
     properties:
-      group: script
-      config: |
-        #!/bin/bash
-        tar -xf /opt/apache-hive-3.1.2-bin.tar.gz -c /opt
-        ln -s /opt/pache-hive-3.1.2-bin /opt/hive
-        echo export HIVE_HOME=/opt/hive >> /root/.profile
-        echo export HIVE_CONF_DIR=/opt/hive/conf >> /root/.profile
-        echo export PATH=$SPARK_HOME/bin:$PATH
-        /opt/spark/sbin/stop-master.sh
-        /opt/spark/sbin/start-master.sh
+      group: ansible
+      inputs:
+        - name: hive_site_xml
+        - name: hive_mycnf
+      config: {get_file: ansible/hive.yaml}
+
   HiveSoftwareDeployment:
     type: OS::Heat::SoftwareDeployment
+    input_values:
+      - hive_site_xml: {get_file: ansible/templates/hive-site.j2.xml}
+      - hive_mycnf: {get_file: ansible/templates/hive_mycnf.j2}
+      - mysql_user: {get_param: HiveMysqlUser}
+      - mysql_password: {get_param: HiveMysqlPassword}
     config:
       get_resource: HiveSoftwareConfig
     server:
       get_param: server
 
 outputs:
-  result:
-    description: Hive config result
-    value:
-      get_attr: [HiveSoftwareDeployment, result]
   stdout:
     description: Hive config stdout
     value:
-      get_attr: [HiveSoftwareDeployment, stdout]
+      get_attr: [HiveSoftwareDeployment, deploy_stdout]
   stderr:
     description: Hive config stderr
     value:
-      get_attr: [HiveSoftwareDeployment, stderr]
+      get_attr: [HiveSoftwareDeployment, deploy_stderr]

@@ -8,8 +8,8 @@ resources:
   SparkSoftwareConfig:
     type: OS::Heat::SoftwareConfig
     properties:
-      group: script
-      config: {get_file: scripts/config_spark.sh}
+      group: ansible
+      config: {get_file: ansible/spark.yaml}
   SparkSoftwareDeployment:
     type: OS::Heat::SoftwareDeployment
     config:
@@ -18,15 +18,11 @@ resources:
       get_param: server
 
 outputs:
-  result:
-    description: Spark config result
-    value:
-      get_attr: [SparkSoftwareDeployment, result]
   stdout:
     description: Spark config stdout
     value:
-      get_attr: [SparkSoftwareDeployment, stdout]
+      get_attr: [SparkSoftwareDeployment, deploy_stdout]
   stderr:
     description: Spark config stderr
     value:
-      get_attr: [SparkSoftwareDeployment, stderr]
+      get_attr: [SparkSoftwareDeployment, deploy_stderr]

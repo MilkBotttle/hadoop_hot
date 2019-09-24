@@ -1,0 +1,19 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: no
+  tasks:
+    - unarchive:
+        src: /opt/mahout-0.14.0.tar.gz
+        dest: /opt
+    - file:
+        state: link
+        src: /opt/mahout-mahout-0.14.0
+        path: /opt/mahout
+
+    - blockinfile:
+        marker: "# {mark} add by ansible (mahout)"
+        block: |
+          export MAHOUT_HOME=/opt/mahout
+          export MAHOUT_CONF_DIR=$MAHOUT_HOME/conf
+          export PATH=$MAHOUT_HOME/conf:$MAHOUT_HOME/bin:$PATH

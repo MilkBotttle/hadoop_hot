@@ -25,6 +25,10 @@ parameters:
   public_net:
     type: string
     default: ''
+  volume_size:
+    type: number
+    label: volume size
+    description: size of volume (gb)
 
   slave_count:
     type: number
@@ -58,7 +62,6 @@ resources:
           port_range_max: 9000
 
 # Hadoop Common Config
-
   HadoopCommonConfig:
     type: OS::Heat::SoftwareConfig
     properties:
@@ -163,13 +166,13 @@ resources:
       server:
         get_resource: master_server
 
-################### run Hadoop ####################
+# Create Hadoop Cluster
   slave_cluster:
     type: OS::Heat::ResourceGroup
     properties:
       count: { get_param: slave_count }
       resource_def:
-        type: slave.yaml
+        type: slave_from_volume.yaml
 
   master_server:
     type: OS::Nova::Server
@@ -184,7 +187,9 @@ resources:
       networks:
       - port: {get_resource: server_port}
       user_data_format: SOFTWARE_CONFIG
-
+      block_device_mapping: [{"volume_id": { get_resource: volume_storage },
+                              "delete_on_termination": true,
+                              "device_name": "vda"}]
   server_port:
     type: OS::Neutron::Port
     properties:
@@ -198,6 +203,11 @@ resources:
       floating_network_id: { get_param: public_net }
       port_id: { get_resource: server_port }
 
+  volume_storage:
+   type: OS::Cinder::Volume
+   properties:
+    size: {get_param: volume_size}
+    image: {get_param: image}
 # Enable spark, hive, or hadoop
 
   EnableSpark:

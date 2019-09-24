@@ -1,0 +1,56 @@
+---
+- hosts: localhost
+  connection: local
+  tasks:
+    - name: Add /etc/hosts
+      blockinfile:
+        marker: "# {mark} add by ansible (hadoop_common)"
+        path: /etc/hosts
+        block: |
+          Host node*
+            User root
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+
+    - name: Add ssh config
+      template:
+        src: templates/config.j2
+        dest: "/root/.ssh/config"
+        mode: 0600
+
+    - name: Unarchive Hadoop tarball
+      unarchive:
+        src: /opt/hadoop-3.1.2.tar.gz
+        dest: /opt
+      register: extract
+
+    - file:
+        src: /opt/hadoop-3.1.2
+        path: /opt/hadoop
+        state: link
+
+    - name: Add config in .bashrc
+      blockinfile:
+        path: "/root/.bashrc"
+        marker: "# {mark} add by ansible (hadoop_common)"
+        block: |
+          PATH=/opt/hadoop/bin:/opt/hadoop/sbin:$PATH
+          export HADOOP_HOME=/opt/hadoop
+          export PATH=${PATH}:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin
+          export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.222.b10-1.el7_7.x86_64/jre
+
+    - copy:
+        content: "{{ core_site_xml }}" # templates/core-site.j2.xml
+        dest: "/opt/hadoop/etc/hadoop/core-site.xml"
+    - copy:
+        content: "{{ hdfs_site_xml }}" # templates/hdfs-site.j2.xml
+        dest: "/opt/hadoop/etc/hadoop/hdfs-site.xml"
+    - copy:
+        content: "{{ mapred_site_xml }}" # templates/mapred-site.j2.xml
+        dest: "/opt/hadoop/etc/hadoop/mapred-site.xml"
+    - copy:
+        content: "{{ yarn_site_xml }}" # templates/yarn-site.j2.xml
+        dest: "/opt/hadoop/etc/hadoop/yarn-site.xml"
+    - copy:
+        content: "{{ workers }}" # templates/workers.j2
+        dest: "/opt/hadoop/etc/hadoop/workers"

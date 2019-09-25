@@ -6,14 +6,19 @@
     - name: Format hadoop
       shell: |
         source /root/.bashrc
-        hdfs namenode -format
+        if [ ! -f "/root/data/nameNode/current/VERSION" ]; then
+          hdfs namenode -format
+        fi
 
-    - name: Stop all
-      shell: |
-        /opt/hadoop-3.1.2/sbin/stop-all.sh
-        source /root/.bashrc
-
-    - name: Start all
+    - name: Start Hadoop
       shell: |
         source /root/.bashrc
-        /opt/hadoop-3.1.2/sbin/start-all.sh
+        RESULT=$(/opt/hadoop-3.1.2/sbin/start-all.sh 2>&1)
+        egrep "ERROR|error" <<< "$RESULT"
+        if [ $? -eq 0 ]; then
+          echo "HDFS Start Successfully"
+          exit 0
+        fi
+
+
+

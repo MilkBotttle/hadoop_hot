@@ -6,7 +6,7 @@
 
     <property>
             <name>yarn.resourcemanager.hostname</name>
-            <value>node-master</value>
+            <value>hadoop-master</value>
     </property>
 
     <property>
@@ -18,17 +18,17 @@
         <name>yarn.nodemanager.resource.memory-mb</name>
         <value>1536</value>
     </property>
-    
+
     <property>
             <name>yarn.scheduler.maximum-allocation-mb</name>
             <value>1536</value>
     </property>
-    
+
     <property>
             <name>yarn.scheduler.minimum-allocation-mb</name>
             <value>128</value>
     </property>
-    
+
     <property>
             <name>yarn.nodemanager.vmem-check-enabled</name>
             <value>false</value>

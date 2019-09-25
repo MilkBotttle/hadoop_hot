@@ -1,7 +1,5 @@
-{% for ip in master_ip %}
-{{ ip }} node-master{{ loop.index }}
-{% endfor %}
+{{ master_ip }} hadoop-master
 
-{% for ip in slave_ip %}
-{{ ip }} node{{ loop.index }} 
+{% for ip in iplist %}
+{{ ip }} node{{ loop.index }}
 {% endfor %}

@@ -3,16 +3,22 @@
   connection: local
   gather_facts: no
   tasks:
+    - get_url:
+        url: http://www.apache.org/dist/mahout/0.13.0/apache-mahout-distribution-0.13.0.tar.gz
+        dest: /opt/apache-mahout-distribution-0.13.0.tar.gz
+
     - unarchive:
-        src: /opt/mahout-0.14.0.tar.gz
+        src: /opt/apache-mahout-distribution-0.13.0.tar.gz
         dest: /opt
+
     - file:
         state: link
-        src: /opt/mahout-mahout-0.14.0
+        src: /opt/apache-mahout-distribution-0.13.0
         path: /opt/mahout
 
     - blockinfile:
         marker: "# {mark} add by ansible (mahout)"
+        path: /root/.bashrc
         block: |
           export MAHOUT_HOME=/opt/mahout
           export MAHOUT_CONF_DIR=$MAHOUT_HOME/conf

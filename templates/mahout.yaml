@@ -9,13 +9,15 @@ resources:
     type: OS::Heat::SoftwareConfig
     properties:
       group: ansible
-      config: {get_file: ansible/mahout.yaml}
+      config: {get_file: ../ansible/mahout.yaml}
+
   MahoutSoftwareDeployment:
     type: OS::Heat::SoftwareDeployment
-    config:
-      get_resource: MahoutSoftwareConfig
-    server:
-      get_param: server
+    properties:
+      config:
+        get_resource: MahoutSoftwareConfig
+      server:
+        get_param: server
 
 outputs:
   stdout:

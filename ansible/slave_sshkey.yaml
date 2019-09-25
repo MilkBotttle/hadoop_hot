@@ -8,4 +8,3 @@
         user: root
         state: present
         key: "{{ id_rsa_pub }}"
-

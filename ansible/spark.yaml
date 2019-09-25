@@ -4,11 +4,11 @@
   gather_facts: no
   tasks:
     - unarchive:
-        src: /opt/spark-2.2.0-bin-hadoop2.7.tgz
+        src: /opt/spark-2.4.4-bin-hadoop2.7.tgz
         dest: /opt
     - file:
         state: link
-        src: /opt/spark-2.2.0
+        src: /opt/spark-2.4.4-bin-hadoop2.7
         path: /opt/spark
     - copy:
         dest: /opt/spark/conf/spark-defaults.conf
@@ -24,10 +24,11 @@
 
     - blockinfile:
         marker: "# {mark} add by ansible (spark)"
+        path: /root/.bashrc
         block: |
           export SPARK_HOME=/opt/spark
           export PATH=$SPARK_HOME/bin:$PATH
-          export HADOOP_CONF_DIR=$HADOOP_HOME/hadoop/etc/hadoop
+          export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
 
     - shell: |
         source /root/.bashrc

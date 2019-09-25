@@ -9,13 +9,14 @@ resources:
     type: OS::Heat::SoftwareConfig
     properties:
       group: ansible
-      config: {get_file: ansible/spark.yaml}
+      config: {get_file: ../ansible/spark.yaml}
   SparkSoftwareDeployment:
     type: OS::Heat::SoftwareDeployment
-    config:
-      get_resource: SparkSoftwareConfig
-    server:
-      get_param: server
+    properties:
+      config:
+        get_resource: SparkSoftwareConfig
+      server:
+        get_param: server
 
 outputs:
   stdout:

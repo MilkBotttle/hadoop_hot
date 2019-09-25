@@ -4,19 +4,22 @@
   connection: local
   tasks:
     - name: Generate ssh key
-      openssh_keypair:
-        size: 4096
-        path: "/root/.ssh"
+      shell: |
+        if [ ! -f /root/.ssh/id_rsa.pub ];then
+          echo -e "\n" | ssh-keygen -t rsa -N "" > /dev/null
+        fi
+        cat /root/.ssh/id_rsa.pub
       register: keypair
 
     - name: Heat outputs id_rsa_pub
-      lineinefile:
+      lineinfile:
+        create: yes
         path: "{{ heat_outputs_path }}.id_rsa_pub"
-        line: "{{ keypair.public_key }}"
+        line: "{{ keypair.stdout }}"
 
     - name: Add key for ssh nopass
       authorized_key:
         user: root
         state: present
-        key: "{{ keypair.public_key }}"
+        key: "{{ keypair.stdout }}"
 

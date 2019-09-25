@@ -13,12 +13,12 @@
 
 <property>
    <name>javax.jdo.option.ConnectionUserName</name>
-   <value>root</value>
+   <value>{{ mysql_user }}</value>
 </property>
 
 <property>
    <name>javax.jdo.option.ConnectionPassword</name>
-   <value>root</value>
+   <value>{{ mysql_password }}</value>
 </property>
 
 <property>

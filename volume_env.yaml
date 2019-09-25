@@ -5,8 +5,8 @@ parameter_defaults:
   private_net: cameron_test
   public_net: ext
   slave_count: 2
-
-  enable_spark: true
-  enable_hive: true
-  enable_mahout: true
+  volume_size: 40
+  enable_spark: false
+  enable_hive: false
+  enable_mahout: false
 

@@ -3,25 +3,49 @@
   connection: local
   gather_facts: no
   tasks:
+    - shell: |
+        rpm -i /opt/mariadb/*.rpm
+    - dnf:
+        name: mysql-connector-java
+
     - unarchive:
         src: /opt/apache-hive-3.1.2-bin.tar.gz
         dest: /opt
+
     - file:
         state: link
-        src: /opt/apache-hive-3.1.2
+        src: /opt/apache-hive-3.1.2-bin
         path: /opt/hive
+
     - copy:
         dest: /opt/hive/conf/hive-site.xml
         content: "{{ hive_site_xml }}"
 
     - blockinfile:
         marker: "# {mark} add by ansible (hive)"
+        path: /root/.bashrc
         block: |
-		  export HIVE_HOME=/opt/hive
-		  export HIVE_CONF_DIR=/opt/hive/conf
+          export HIVE_HOME=/opt/hive
+          export HIVE_CONF_DIR=/opt/hive/conf
+          export PATH=$HIVE_HOME/bin:$PATH
+
+    - systemd:
+        name: mariadb
+        state: started
+
+    - shell: |
+        mysql -e "GRANT ALL PRIVILEGES ON *.* TO '{{ mysql_user }}'@'localhost' IDENTIFIED BY '{{ mysql_password }}';"
+      ignore_errors: yes
+
     - copy:
         dest: /root/.my.cnf
-        content: {{ hive_mycnf }}
+        content: "{{ hive_mycnf }}"
+
+    - copy:
+        src: /usr/share/java/mysql-connector-java.jar
+        dest: /opt/hive/lib
+
     - shell: |
         source /root/.bashrc
-		schematool -initSchema -dbType mysql
+        /opt/apache-hive-3.1.2-bin/bin/schematool -initSchema -dbType mysql
+      ignore_errors: yes

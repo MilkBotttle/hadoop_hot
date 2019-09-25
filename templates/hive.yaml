@@ -18,19 +18,20 @@ resources:
       inputs:
         - name: hive_site_xml
         - name: hive_mycnf
-      config: {get_file: ansible/hive.yaml}
+      config: {get_file: ../ansible/hive.yaml}
 
   HiveSoftwareDeployment:
     type: OS::Heat::SoftwareDeployment
-    input_values:
-      - hive_site_xml: {get_file: ansible/templates/hive-site.j2.xml}
-      - hive_mycnf: {get_file: ansible/templates/hive_mycnf.j2}
-      - mysql_user: {get_param: HiveMysqlUser}
-      - mysql_password: {get_param: HiveMysqlPassword}
-    config:
-      get_resource: HiveSoftwareConfig
-    server:
-      get_param: server
+    properties:
+      input_values:
+        hive_site_xml: {get_file: ../ansible/templates/hive-site.j2.xml}
+        hive_mycnf: {get_file: ../ansible/templates/hive_mycnf.j2}
+        mysql_user: {get_param: HiveMysqlUser}
+        mysql_password: {get_param: HiveMysqlPassword}
+      config:
+        get_resource: HiveSoftwareConfig
+      server:
+        get_param: server
 
 outputs:
   stdout:

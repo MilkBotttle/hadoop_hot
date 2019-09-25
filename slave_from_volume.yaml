@@ -11,10 +11,13 @@ parameters:
     type: string
   security_groups:
     type: string
+  volume_size:
+    type: number
   slave_name:
     type: string
 
 resources:
+
   server:
     type: OS::Nova::Server
     properties:
@@ -28,6 +31,14 @@ resources:
       networks:
       - port: {get_resource: server_port}
       user_data_format: SOFTWARE_CONFIG
+      block_device_mapping: [{"volume_id": { get_resource: volume_storage },
+                              "delete_on_termination": true,
+                              "device_name": "vda"}]
+  volume_storage:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: volume_size}
+      image: {get_param: image}
 
   server_port:
     type: OS::Neutron::Port

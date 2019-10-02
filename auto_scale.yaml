@@ -144,6 +144,8 @@ resources:
       server: {get_param: master_server}
 
 outputs:
+  slave_id:
+    value: {get_resource: slave_server}
   slave_ip:
     description: slave node private net ip address
     value: {get_attr: [slave_server, first_address]}

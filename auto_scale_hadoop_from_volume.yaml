@@ -1,0 +1,289 @@
+heat_template_version: ocata
+description: Auto scaling haddop cluster, with selected function.
+
+parameters:
+  enable_hive:
+    type: boolean
+    default: False
+    description: Enable Hive in Hadoop cluster
+  enable_spark:
+    type: boolean
+    default: False
+    description: Enable Spark in Hadoop cluster
+  enable_mahout:
+    type: boolean
+    default: False
+    description: Enable Mahout in Hadoop cluster
+
+  flavor:
+    type: string
+  image:
+    type: string
+  key_name:
+    type: string
+  private_net:
+    type: string
+  public_net:
+    type: string
+    default: ''
+  volume_size:
+    type: number
+
+  SlaveSizeMin:
+    type: number
+    description: Minimal number of slave nodes, at least 1.
+    default: 1
+    constraints:
+      - range: {min: 1}
+
+  SlaveSizeMax:
+    type: number
+    description: Maximun number of slave nodes.
+
+  SecurityGroupPorts:
+    type: comma_delimited_list
+    default: "22,9870,9000,9864,9866,9867,9868,8088,7077,8080,9083"
+
+  CoolDown:
+    description: Cooldown period, in seconds.
+    type: number
+    default: 300
+  UseCpuAlarm:
+    type: boolean
+    default: false
+  CpuMaxThreshold:
+    description: CPU usage in %
+    type: number
+    default: 80
+  CpuMinThreshold:
+    type: number
+    default: 5
+
+  AutoScalingUpAdjustment:
+    type: number
+    constraints:
+      - range: {min: 1}
+  AutoScalingDownAdjustment:
+    type: number
+    constraints:
+      - range: {max: -1}
+
+  EvaluationPeriods:
+    type: number
+    description: Number of periods to evaluate over.
+    default: 1
+conditions:
+  has_public_network:
+    not:
+      equals:
+      - {get_param: public_net}
+      - ''
+
+
+resources:
+  ICMPrule:
+    type: OS::Neutron::SecurityGroupRule
+    properties:
+      security_group: {get_resource: SecurityGroup}
+      protocol: icmp
+      remote_ip_prefix: 0.0.0.0/0
+  SecurityGroup:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      description: Add security group rules for hadoop cluster
+      rules:
+        repeat:
+          for_each:
+            <%port%>: {get_param: SecurityGroupPorts}
+          template:
+            remote_ip_prefix: 0.0.0.0/0
+            port_range_min: <%port%>
+            port_range_max: <%port%>
+            protocol: tcp
+
+# Hadoop Cluster
+  auto_slave_cluster:
+    type: OS::Heat::AutoScalingGroup
+    depends_on:
+      - MasterBaseDeployment
+    properties:
+      cooldown: {get_param: CoolDown}
+      desired_capacity: {get_param: SlaveSizeMin}
+      max_size: {get_param: SlaveSizeMax}
+      min_size: {get_param: SlaveSizeMin}
+      resource:
+        type: auto_scale_volume.yaml
+        properties:
+          id_rsa_pub: {get_attr: [MasterSSHDeployment, id_rsa_pub]}
+          volume_size: {get_param: volume_size}
+          security_groups: {get_resource: SecurityGroup}
+          master_server: {get_resource: master_server}
+          master_ip: {get_attr: [master_server, first_address]}
+          metadata: {"metering.server_group": {get_param: "OS::stack_id"}}
+
+  SlaveClusterSacleUpPolicy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: { get_resource: auto_slave_cluster}
+      cooldown: {get_param: CoolDown}
+      scaling_adjustment: {get_param: AutoScalingUpAdjustment}
+
+  SlaveClusterSacleDownPolicy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: { get_resource: auto_slave_cluster}
+      cooldown: {get_param: CoolDown}
+      scaling_adjustment: {get_param: AutoScalingDownAdjustment}
+
+  CpuAlarmHigh:
+    type: OS::Aodh::GnocchiAggregationByResourcesAlarm
+    condition: {get_param: UseCpuAlarm}
+    properties:
+      description: Scale up if CPU > CpuMaxThreshold
+      metric: cpu_util
+      aggregation_method: mean
+      granularity: 300
+      evaluation_periods: {get_param: EvaluationPeriods}
+      threshold: {get_param: CpuMaxThreshold}
+      resource_type: instance
+      comparison_operator: gt
+      alarm_actions:
+        - str_replace:
+            template: trust+url
+            params:
+              url: {get_attr: [SlaveClusterSacleUpPolicy, signal_url]}
+      query:
+        str_replace:
+          template: '{"=": {"server_group": "stack_id"}}'
+          params:
+            stack_id: {get_param: "OS::stack_id"}
+
+  CpuAlarmLow:
+    type: OS::Aodh::GnocchiAggregationByResourcesAlarm
+    condition: {get_param: UseCpuAlarm}
+    properties:
+      description: Scale Down if CPU < CpuMinThreshold
+      metric: cpu_util
+      aggregation_method: mean
+      granularity: 300
+      evaluation_periods: {get_param: EvaluationPeriods}
+      threshold: {get_param: CpuMaxThreshold}
+      resource_type: instance
+      comparison_operator: lt
+      alarm_actions:
+        - str_replace:
+            template: trust+url
+            params:
+              url: {get_attr: [SlaveClusterSacleDownPolicy, signal_url]}
+      query:
+        str_replace:
+          template: '{"=": {"server_group": "stack_id"}}'
+          params:
+            stack_id: {get_param: "OS::stack_id"}
+
+  master_server:
+    type: OS::Nova::Server
+    properties:
+      name:
+        str_replace:
+          template: '%stackname%-hadoop-master'
+          params:
+            '%stackname%': {get_param: 'OS::stack_name'}
+      image:
+        get_param: image
+      flavor:
+        get_param: flavor
+      key_name:
+        get_param: key_name
+      networks:
+      - port: {get_resource: server_port}
+      user_data_format: SOFTWARE_CONFIG
+      block_device_mapping: [{"volume_id": { get_resource: volume_storage },
+                              "delete_on_termination": true,
+                              "device_name": "vda"}]
+  MasterSSHConfig:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ansible
+      outputs:
+        - name: id_rsa_pub
+      config: {get_file: ansible/master_sshkey.yaml}
+
+  MasterSSHDeployment:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config: {get_resource: MasterSSHConfig}
+      server: {get_resource: master_server}
+
+  MasterBaseConfig:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ansible
+      config: {get_file: ansible/hadoop_base.yaml}
+
+  MasterBaseDeployment:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config: {get_resource: MasterBaseConfig}
+      server: {get_resource: master_server}
+
+  volume_storage:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: volume_size}
+      image: {get_param: image}
+
+  server_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: private_net }
+      security_groups: [{ get_resource: SecurityGroup}]
+
+  server_floating_ip:
+    type: OS::Neutron::FloatingIP
+    condition: has_public_network
+    properties:
+      floating_network_id: { get_param: public_net }
+      port_id: {get_resource: server_port}
+
+# Enable spark, hive, or hadoop
+
+  EnableSpark:
+    type: OS::Inwin::Spark
+    condition: {get_param: enable_spark}
+    depends_on: auto_slave_cluster
+    properties:
+      server: {get_resource: master_server}
+
+  EnableHive:
+    type: OS::Inwin::Hive
+    condition: {get_param: enable_hive}
+    depends_on: auto_slave_cluster
+    properties:
+      server: {get_resource: master_server}
+
+  EnableMohout:
+    type: OS::Inwin::Mahout
+    condition: {get_param: enable_mahout}
+    depends_on: auto_slave_cluster
+    properties:
+      server: {get_resource: master_server}
+
+outputs:
+  MasterIP:
+    description: Master node private address
+    value: {get_attr: [master_server, first_address]}
+
+  MasterPublicIP:
+    description: Master node floating ip address.
+    value: {get_attr: [server_floating_ip, floating_ip_address]}
+
+  SlaveIPs:
+    description: Slave nodes private address
+    value: {get_attr: [auto_slave_cluster, outputs_list, slave_ip]}
+
+  SlaveCluster:
+    description: List of slave nodes
+    value: {get_attr: [auto_slave_cluster, outputs_list, slave_id]}

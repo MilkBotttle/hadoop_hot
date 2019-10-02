@@ -2,59 +2,17 @@
 - hosts: localhost
   connection: local
   tasks:
-    - set_fact:
-        iplist: "{{ slave_ip_list | regex_findall('\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b') }}"
-
-    - name: Add /etc/hosts
-      blockinfile:
-        marker: "# {mark} add by ansible (hadoop_common)"
+    - name: Add master to /etc/hosts
+      lineinfile:
         path: /etc/hosts
-        block: "{{ etc_hosts }}"
+        regexp: "{{ master_ip }}"
+        line: "{{ master_ip }} hadoop-master"
 
-    - name: Add ssh config
-      copy:
-        content: |
-          Host node*
-            User root
-            StrictHostKeyChecking no
-            UserKnownHostsFile /dev/null
-        dest: "/root/.ssh/config"
-        mode: 0600
-
-    - name: Unarchive Hadoop tarball
-      unarchive:
-        src: /opt/hadoop-3.1.2.tar.gz
-        dest: /opt
-
-    - name: link hadoop
-      file:
-        src: /opt/hadoop-3.1.2
-        path: /opt/hadoop
-        state: link
-
-
-    - name: Add config in .bashrc
-      blockinfile:
-        path: "/root/.bashrc"
-        marker: "# {mark} add by ansible (hadoop_common)"
-        block: |
-          export PATH=/opt/hadoop/bin:/opt/hadoop/sbin:$PATH
-          export HADOOP_HOME=/opt/hadoop
-          export PATH=${PATH}:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin
-          export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.181.b15-0.fc27.x86_64/jre
-
-    - name: Add config in hadoop-env
-      blockinfile:
-        path: "/opt/hadoop-3.1.2/etc/hadoop/hadoop-env.sh"
-        marker: "# {mark} add by ansible (hadoop_common)"
-        block: |
-          export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.181.b15-0.fc27.x86_64/jre
-          export HDFS_NAMENODE_USER="root"
-          export HDFS_DATANODE_USER="root"
-          export HDFS_SECONDARYNAMENODE_USER="root"
-          export YARN_RESOURCEMANAGER_USER="root"
-          export YARN_NODEMANAGER_USER="root"
-
+    - name: Add a slave to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        regexp: "{{ slave_ip }}"
+        line: "{{ slave_ip }} {{ slave_hostname }}"
 
     - copy:
         content: "{{ core_site_xml }}" # templates/core-site.j2.xml
@@ -68,6 +26,14 @@
     - copy:
         content: "{{ yarn_site_xml }}" # templates/yarn-site.j2.xml
         dest: "/opt/hadoop/etc/hadoop/yarn-site.xml"
-    - copy:
-        content: "{{ workers }}" # templates/workers.j2
-        dest: "/opt/hadoop/etc/hadoop/workers"
+    - name: Remove localhost in file
+      lineinfile:
+        path: /opt/hadoop/etc/hadoop/workers
+        regexp: "localhost"
+        state: absent
+    - name: Add workers to file
+      lineinfile:
+        path: /opt/hadoop/etc/hadoop/workers
+        regexp: "{{ slave_hostname }}"
+        line: "{{ slave_hostname }}"
+

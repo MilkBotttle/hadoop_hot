@@ -1,0 +1,4 @@
+resource_registry:
+  OS::Inwin::Spark: ../templates/spark.yaml
+  OS::Inwin::Hive: ../templates/hive.yaml
+  OS::Inwin::Mahout: ../templates/mahout.yaml

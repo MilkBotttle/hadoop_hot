@@ -1,0 +1,18 @@
+parameter_defaults:
+  CoolDown: 300
+  UseCpuAlarm: true
+  CpuMaxThreshold: 80
+  CpuMinThreshold: 5
+  AutoScalingUpAdjustment: 1
+  AutoScalingDownAdjustment: -1
+  EvaluationPeriods: 1
+  SlaveSizeMax: 3
+  key_name: cameron
+  flavor: cameron
+  image: cameron-test
+  private_net: cameron_test
+  public_net: ext
+  volume_size: 40
+  enable_spark: true
+  enable_hive: true
+  enable_mahout: true

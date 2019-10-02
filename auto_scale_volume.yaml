@@ -1,0 +1,166 @@
+heat_template_version: ocata
+parameters:
+  master_server:
+    type: string
+  master_ip:
+    type: string
+    description: Master node ip address
+  id_rsa_pub:
+    type: string
+  flavor:
+    type: string
+  image:
+    type: string
+  key_name:
+    type: string
+  private_net:
+    type: string
+  security_groups:
+    type: string
+  volume_size:
+    type: number
+  metadata:
+    type: json
+resources:
+  random_name:
+    type: OS::Heat::RandomString
+    properties:
+      length: 10
+  slave_name:
+    type: OS::Heat::Value
+    properties:
+      type: string
+      value:
+        str_replace:
+          template: 'hadoop-slave-%random_name%'
+          params:
+            '%random_name%': {get_attr: [ random_name, value ]}
+  slave_server:
+    type: OS::Nova::Server
+    properties:
+      name: {get_attr: [slave_name, value]}
+      image:
+        get_param: image
+      flavor:
+        get_param: flavor
+      key_name:
+        get_param: key_name
+      networks:
+      - port: {get_resource: server_port}
+      metadata: {get_param: metadata}
+      user_data_format: SOFTWARE_CONFIG
+      block_device_mapping: [{"volume_id": { get_resource: volume_storage },
+                              "delete_on_termination": true,
+                              "device_name": "vda"}]
+  volume_storage:
+    type: OS::Cinder::Volume
+    properties:
+      size: {get_param: volume_size}
+      image: {get_param: image}
+
+  server_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: private_net }
+      security_groups:
+        - { get_param: security_groups }
+# Hadoop Common Config
+  SlaveBaseConfig:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ansible
+      config: {get_file: ansible/hadoop_base.yaml}
+  SlaveBaseDeployment:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      config: {get_resource: SlaveBaseConfig}
+      server: {get_resource: slave_server}
+
+  CommonConfig:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      inputs:
+        - name: slave_hostname
+        - name: master_ip
+        - name: slave_ip
+        - name: core_site_xml
+        - name: hdfs_site_xml
+        - name: mapred_site_xml
+        - name: yarn_site_xml
+        - name: workers
+        - name: etc_hosts
+      group: ansible
+      config: { get_file: ansible/hadoop_common.yaml}
+
+  MasterCommonDeployment:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      input_values:
+        slave_hostname: {get_attr: [slave_server, name]}
+        master_ip: {get_param: master_ip}
+        slave_ip: {get_attr: [slave_server, first_address]}
+        core_site_xml: {get_file: ansible/templates/core-site.j2.xml}
+        hdfs_site_xml: {get_file: ansible/templates/hdfs-site.j2.xml}
+        mapred_site_xml: {get_file: ansible/templates/mapred-site.j2.xml}
+        yarn_site_xml: {get_file: ansible/templates/yarn-site.j2.xml}
+      config: {get_resource: CommonConfig}
+      server: {get_param: master_server}
+
+  SlaveCommonDeployment:
+    type: OS::Heat::SoftwareDeployment
+    depends_on: SlaveBaseDeployment
+    properties:
+      input_values:
+        slave_hostname: {get_attr: [slave_server, name]}
+        master_ip: {get_param: master_ip}
+        slave_ip: {get_attr: [slave_server, first_address]}
+        core_site_xml: {get_file: ansible/templates/core-site.j2.xml}
+        hdfs_site_xml: {get_file: ansible/templates/hdfs-site.j2.xml}
+        mapred_site_xml: {get_file: ansible/templates/mapred-site.j2.xml}
+        yarn_site_xml: {get_file: ansible/templates/yarn-site.j2.xml}
+      config: {get_resource: CommonConfig}
+      server: {get_resource: slave_server}
+
+  SlaveSSHConfig:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ansible
+      inputs:
+        - name: id_rsa_pub
+      config: {get_file: ansible/slave_sshkey.yaml}
+
+  SlaveSSHDeployment:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      input_values:
+        id_rsa_pub: {get_param: id_rsa_pub}
+      config: {get_resource: SlaveSSHConfig}
+      server: {get_resource: slave_server}
+
+  RunHadoopConfig:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ansible
+      config: {get_file: ansible/run_hadoop.yaml}
+
+  RunHadoopDeployment:
+    type: OS::Heat::SoftwareDeployment
+    depends_on:
+      - MasterCommonDeployment
+      - SlaveCommonDeployment
+      - SlaveSSHDeployment
+    properties:
+      config: {get_resource: RunHadoopConfig}
+      server: {get_param: master_server}
+
+outputs:
+  slave_ip:
+    description: slave node private net ip address
+    value: {get_attr: [slave_server, first_address]}
+  slave_common_stderr:
+    description: deploy stderr
+    value: {get_attr: [SlaveCommonDeployment, deploy_stderr]}
+  slave_common_stdout:
+    description: deploy stdout
+    value: {get_attr: [SlaveCommonDeployment, deploy_stdout]}
+

@@ -25,9 +25,12 @@ openstack stack create  -t auto_scale_hadoop_from_volume.yaml \
 ## Parameter Description
 > If the parameter no default description there is required parameter.
 * CoolDown: Scaling cooldown period, in seconds. (default: 300)
-* UseCpuAlarm: Enable cpu alarm, if set to false scaling will not happen. (default: false)
+* UseCpuAlarm: Enable cpu alarm, if set to false scaling will not happen, like use 
+  `OS::Heat::ResourceGroup`. (default: false)
 * CpuMaxThreshold: Max cpu threshold to trigger alarm. (default: 80)
 * CpuMinThreshold: Min cpu threshold to trigger alarm. (default: 5)
+* CustomActionUrlHigh: A webhook for high alarm send
+* CustomActionUrlLow: A webhook for low alarm send
 * AutoScalingUpAdjustment: Each time scaling up size of adjustment. (default: 1, min: 1)
 * AutoScalingDownAdjustment: Each time scaling down size of adjustment. (default: -1, max: -1)
 * EvaluationPeriods: Number of periods to evaluate over scaling. (default: 1)
@@ -42,3 +45,4 @@ openstack stack create  -t auto_scale_hadoop_from_volume.yaml \
 * enable_spark: enable spark on master
 * enable_hive: enable hive on master
 * enable_mahout: enable mahout on master
+

@@ -46,9 +46,11 @@ parameters:
     description: Cooldown period, in seconds.
     type: number
     default: 300
+
   UseCpuAlarm:
     type: boolean
     default: false
+
   CpuMaxThreshold:
     description: CPU usage in %
     type: number
@@ -70,6 +72,17 @@ parameters:
     type: number
     description: Number of periods to evaluate over.
     default: 1
+
+  CustomActionUrlHigh:
+    type: string
+    default: ''
+    description: Custom action url
+
+  CustomActionUrlLow:
+    type: string
+    default: ''
+    description: Custom action url
+
 conditions:
   has_public_network:
     not:
@@ -151,6 +164,7 @@ resources:
             template: trust+url
             params:
               url: {get_attr: [SlaveClusterSacleUpPolicy, signal_url]}
+        - {get_parm: CustomActionUrlHigh}
       query:
         str_replace:
           template: '{"=": {"server_group": "stack_id"}}'
@@ -174,6 +188,7 @@ resources:
             template: trust+url
             params:
               url: {get_attr: [SlaveClusterSacleDownPolicy, signal_url]}
+        - {get_parm: CustomActionUrlLow}
       query:
         str_replace:
           template: '{"=": {"server_group": "stack_id"}}'

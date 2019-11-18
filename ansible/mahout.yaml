@@ -6,6 +6,8 @@
     - get_url:
         url: http://www.apache.org/dist/mahout/0.13.0/apache-mahout-distribution-0.13.0.tar.gz
         dest: /opt/apache-mahout-distribution-0.13.0.tar.gz
+      retries: 100
+      delay: 3
 
     - unarchive:
         src: /opt/apache-mahout-distribution-0.13.0.tar.gz
